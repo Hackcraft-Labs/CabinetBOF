@@ -1,0 +1,40 @@
+alias CabinetBOF {
+    local('$bid $extractionPath $cabFilePath $barch $handle $data $cabContent $args');
+
+    $bid = $1;
+    $extractionPath = $2;
+    $cabFilePath = $3;
+
+    if ($extractionPath eq "" || $cabFilePath eq "") {
+        berror($bid, "Usage: CabinetBOF <extraction_path> <local_cab_path>");
+        return;
+    }
+
+    if (!-exists $cabFilePath) {
+        berror($bid, "Cabinet file not found: " . $cabFilePath);
+        return;
+    }
+
+    $barch = barch($bid);
+
+    $handle = openf(script_resource("CabinetBOF." . $barch . ".o"));
+    if ($handle is $null) {
+        berror($bid, "Could not open CabinetBOF." . $barch . ".o from script resources.");
+        return;
+    }
+    $data = readb($handle, -1);
+    closef($handle);
+
+    $handle = openf($cabFilePath);
+    if ($handle is $null) {
+        berror($bid, "Could not open cabinet file: " . $cabFilePath);
+        return;
+    }
+    $cabContent = readb($handle, -1);
+    closef($handle);
+
+    $args = bof_pack($bid, "zb", $extractionPath, $cabContent);
+
+    btask($bid, "Extracting cabinet (" . $cabFilePath . ") to " . $extractionPath . "...");
+    beacon_inline_execute($bid, $data, "Extract", $args);
+}
